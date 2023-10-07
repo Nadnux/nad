@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <script src="./dist/include-openlayers-local.js"></script>
+    <title>Document</title>
+    <style>
+        body, html, div, ul, li, iframe, p, img {
+            border: none;
+            padding: 0;
+            margin: 0;
+            font-size: 14px;
+            font-family: "微软雅黑";
+        }
+        #mapCon{
+            width: 100%;
+            height: 100%;
+            position: absolute;
+        }
+        #mapCon .ol-zoom .ol-zoom-out {
+                margin-top: 204px;
+            }
+            #mapCon .ol-zoomslider {
+                background-color: transparent;
+                top: 2.3em;
+            }
+            #mapCon .ol-touch .ol-zoom .ol-zoom-out {
+                margin-top: 212px;
+            }
+            #mapCon .ol-touch .ol-zoomslider {
+                top: 2.75em;
+            }
+            #mapCon .ol-zoom-in .ol.has-tooltip:hover[role=tooltip],
+            #mapCon .ol-zoom-in .ol-has-tooltip:focus[role=tooltip] {
+                top: 3px;
+            }
+            #mapCon .ol-zoom-out .ol-has-tooltip:hover[role=tooltip],
+            #mapCon .ol-zoon-out .ol-has-out-tooltip:focus[role=tooltip] {
+                top: 232px;
+            }
+            #mapCon .ol-zoom-extent {
+                top: 280px;
+            }
+             /*=S 自定义鹰眼样式 */
+        .ol-custom-overviewmap, .ol-custom-overviewmap.ol-uncollapsible {
+            bottom: auto;
+            left: auto;
+            /* 右侧显示 */
+            right: 0;
+            /* 顶部显示 */
+            top: 0;
+        }
+        /* 鹰眼控件展开时控件外框的样式 */
+        .ol-custom-overviewmap:not(.ol-collapsed)  {
+            border: 1px solid black;
+        }
+         /* 鹰眼控件中地图容器样式 */
+        .ol-custom-overviewmap .ol-overviewmap-map {
+            border: none;
+            width: 300px;
+        }
+        /* 鹰眼控件中显示当前窗口中主图区域的边框 */
+        .ol-custom-overviewmap .ol-overviewmap-box {
+            border: 2px solid red;
+        }
+        /* 鹰眼控件展开时其控件按钮图标的样式 */
+        .ol-custom-overviewmap:not(.ol-collapsed) button{
+            bottom: auto;
+            left: auto;
+            right: 1px;
+            top: 1px;
+        }
+        /* 图层控件层样式设置 */
+        .layerControl {
+            position: absolute;
+            bottom: 5px;
+            min-width: 200px;
+            max-height: 200px;
+            left: 50px;
+            top: 40px;
+            /*在地图容器中的层，要设置z-index的值让其显示在地图上层*/
+            z-index: 2001;
+            color: #ffffff;
+            background-color: #39926f;
+            /*边缘的宽度*/
+            border-width: 10px;
+            /*圆角的大小 */
+            border-radius: 10px;
+            /*边框颜色*/
+            border-color: #dd2424 #000 #000 #000;
+        }
+
+            .layerControl .title {
+                font-weight: bold;
+                font-size: 15px;
+                margin: 10px;
+            }
+
+        .layerTree li {
+            list-style: none;
+            margin: 5px 10px;
+        }
+        /* 鼠标位置控件层样式设置 */
+        #mouse-position {
+            float: right;
+            position: absolute;
+            bottom: 5px;
+            width: 200px;
+            height: 20px;
+            /*在地图容器中的层，要设置z-index的值让其显示在地图上层*/
+            z-index: 2000;
+        }
+        /* 鼠标位置信息自定义样式设置 */
+        .custom-mouse-position {
+            color: rgb(223, 21, 21);
+            font-size: 16px;
+            font-family: "微软雅黑";
+        }
+    </style>
+</head>
+<body>
+    <div id="mapCon" > 
+        <button onclick="xxx()">关闭地名图层</button>
+        <div id="mouse-position"></div>
+        <div id="layerControl" class="layerControl">
+            <div class="title"><label>图层列表</label></div>
+            <ul id="layerTree" class="layerTree"></ul>
+        </div>
+    </div>
+    
+    <script type="text/javascript">
+        
+        
+        //map中的图层数组
+        var layer = new Array();
+        //图层名称数组
+        var layerName = new Array();
+        //图层可见属性数组
+        var layerVisibility = new Array();
+
+        /**
+        * 加载图层列表数据
+        * @param {ol.Map} map 地图对象
+        * @param {string} id 图层列表容器ID
+        */
+        function loadLayersControl(map, id) {
+            //图层目录容器
+            var treeContent = document.getElementById(id); 
+            //获取地图中所有图层
+            var layers = map.getLayers();
+            for (var i = 0; i < layers.getLength() ; i++) {
+                //获取每个图层的名称、是否可见属性
+                layer[i] = layers.item(i);
+                layerName[i] = layer[i].get('name');
+                layerVisibility[i] = layer[i].getVisible();
+                //新增li元素，用来承载图层项
+                var elementLi = document.createElement('li');
+                // 添加子节点
+                treeContent.appendChild(elementLi); 
+                //创建复选框元素
+                var elementInput = document.createElement('input');
+                elementInput.type = "checkbox";
+                elementInput.name = "layers";
+                elementLi.appendChild(elementInput);
+                //创建label元素
+                var elementLable = document.createElement('label');
+                elementLable.className = "layer";
+                //设置图层名称
+                setInnerText(elementLable, layerName[i]);
+                elementLi.appendChild(elementLable);
+                //设置图层默认显示状态
+                if (layerVisibility[i]) {
+                    elementInput.checked = true;
+                }
+                //为checkbox添加变更事件
+                addChangeEvent(elementInput, layer[i]);  
+            }
+        }
+        /**
+        * 为checkbox元素绑定变更事件
+        * @param {input} element checkbox元素
+        * @param {ol.layer.Layer} layer 图层对象
+        */
+        function addChangeEvent(element, layer) {
+            element.onclick = function () {
+                if (element.checked) {
+                    //显示图层
+                    layer.setVisible(true);
+                }
+                else {
+                    //不显示图层
+                    layer.setVisible(false); 
+                }
+            };
+        }
+        /**
+        * 动态设置元素文本内容（兼容）
+        */
+        function setInnerText(element, text) {
+            if (typeof element.textContent == "string") {
+                element.textContent = text;
+            } else {
+                element.innerText = text;
+            }
+        }
+        
+        
+        
+        
+        //实例化鹰眼控件（OverviewMap）,最简单的默认样式鹰眼控件
+        // var overviewMapControl = new ol.control.OverviewMap();
+        //实例化鹰眼控件（OverviewMap）,自定义样式的鹰眼控件  
+        var overviewMapControl = new ol.control.OverviewMap({
+            //鹰眼控件样式（see in overviewmap-custom.html to see the custom CSS used）
+            className: 'ol-overviewmap ol-custom-overviewmap', 
+            //鹰眼中加载同坐标系下不同数据源的图层
+            layers: [ 
+                new ol.layer.Tile({
+                    source: new ol.source.XYZ({
+                        url: "http://t0.tianditu.com/DataServer?T=vec_w&x={x}&y={y}&l={z}&tk=" + '50ff3e559ad58fa30819f92ce0cf8430',//parent.TiandituKey()为天地图密钥,
+                        wrapX: false
+                    })
+                }),
+                new ol.layer.Tile({
+                    title: "天地图矢量注记图层",
+                    source: new ol.source.XYZ({
+                        url: "http://t0.tianditu.com/DataServer?T=cva_w&x={x}&y={y}&l={z}&tk=" + '50ff3e559ad58fa30819f92ce0cf8430',//parent.TiandituKey()为天地图密钥
+                    })
+                })
+            ],
+            //鹰眼控件展开时功能按钮上的标识（网页的JS的字符编码）
+            collapseLabel: '\u00BB',
+            //鹰眼控件折叠时功能按钮上的标识（网页的JS的字符编码）
+            label: '\u00AB',
+            //初始为展开显示方式
+            collapsed: false 
+            
+        });
+        
+
+
+        
+        
+        var TiandiMap_vec = new ol.layer.Tile({
+            name: "天地图矢量图层",
+            source: new ol.source.XYZ({
+                url: "http://t0.tianditu.com/DataServer?T=vec_w&x={x}&y={y}&l={z}&tk=" + '50ff3e559ad58fa30819f92ce0cf8430',//parent.TiandituKey()为天地图密钥,
+                wrapX: false
+            })
+        });
+        var TiandiMap_cva = new ol.layer.Tile({
+            name: "天地图矢量注记图层",
+            source: new ol.source.XYZ({
+                url: "http://t0.tianditu.com/DataServer?T=cva_w&x={x}&y={y}&l={z}&tk=" + '50ff3e559ad58fa30819f92ce0cf8430',//parent.TiandituKey()为天地图密钥
+                wrapX: false
+            })
+        });
+        var TiandiMap_img = new ol.layer.Tile({
+            name: "天地图影像图层",
+            source: new ol.source.XYZ({
+                url: "http://t0.tianditu.com/DataServer?T=img_w&x={x}&y={y}&l={z}&tk=" + '50ff3e559ad58fa30819f92ce0cf8430',//parent.TiandituKey()为天地图密钥,
+                wrapX: false
+            })
+        });
+        var TiandiMap_cia = new ol.layer.Tile({
+            name: "天地图影像注记图层",
+            source: new ol.source.XYZ({
+                url: "http://t0.tianditu.com/DataServer?T=cia_w&x={x}&y={y}&l={z}&tk=" + '50ff3e559ad58fa30819f92ce0cf8430',//parent.TiandituKey()为天地图密钥,
+                wrapX: false
+            })
+        });
+        //实例化Map对象加载地图
+        var map = new ol.Map({
+            //地图容器div的ID
+            target: 'mapCon', 
+            //地图容器中加载的图层
+            layers: [TiandiMap_vec,TiandiMap_cva,TiandiMap_img,TiandiMap_cia],
+            //地图视图设置
+            view: new ol.View({
+                //地图初始中心点
+                center: [0,0],
+                //地图初始显示级别
+                zoom: 2,
+                
+                
+            }),
+            
+        });
+        loadLayersControl(map, "layerTree");
+
+        //实例化ZoomSlider控件并加载到地图容器中
+        var zoomslider = new ol.control.ZoomSlider(); 
+        map.addControl(zoomslider);
+        //实例化zoomToExtent控件并加载到地图容器中
+        var zoomToExtent = new ol.control.ZoomToExtent({
+            extent: [
+            0,0,
+            0, 2500000
+            ]
+        });
+        //加载图层列表数据
+        map.addControl(zoomToExtent);
+        //实例化比例尺控件（ScaleLine）
+        var scaleLineControl = new ol.control.ScaleLine({
+         //设置比例尺单位，degrees、imperial、us、nautical、metric（度量单位）
+        units: "metric" 
+        });
+        map.addControl(scaleLineControl);
+        map.addControl(overviewMapControl);
+        //关闭注记图层
+        var i=0
+        function xxx(){
+            i=i+1
+            if(i%2==0){
+                map.addLayer(TiandiMap_cva)
+            }else{
+                map.removeLayer(TiandiMap_cia)
+            }
+        }
+        
+        
+        </script>
+        
+    
+    
+</body>
+</html>
